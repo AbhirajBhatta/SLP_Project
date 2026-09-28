@@ -1,0 +1,118 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+
+\title{Low-Latency VR Speech Translation, Speaker Diarization, and Meeting Summarization: Introduction, Objectives, and Preliminary Concepts}
+
+\author{
+\IEEEauthorblockN{Abhiraj Bhatta (23BAI0089), Piyush Priyadarsi Panda (23BAI0134), Rajesh Mundhe (23BAI0112),\\
+Varun Suresh (23BAI0097), and Simran Rawat (23BAI0090)}
+\IEEEauthorblockA{Vellore Institute of Technology, Vellore, Tamil Nadu, India}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This work investigates an integrated speech and language processing pipeline for multilingual meetings and immersive caption interfaces. The project combines streaming speech capture, automatic speech recognition (ASR), language identification, machine translation, online speaker attribution, live caption delivery, and post-meeting Minutes of Meeting (MoM) generation. The immediate implementation target is a measurable browser prototype that simulates a VR heads-up display; direct HMD integration, spatial audio, and HMD-aware audio-visual diarization form the extended research target. This paper states the objectives and introduces the concepts and evaluation measures required for both stages.
+\end{abstract}
+
+\begin{IEEEkeywords}
+streaming ASR, machine translation, speaker diarization, virtual reality, meeting summarization, server-sent events
+\end{IEEEkeywords}
+
+\section{Introduction}
+Remote and immersive meetings create two related accessibility problems. First, users may not share a language or may require captions. Second, a multi-party conversation must preserve the identity and timing of each speaker if it is to remain understandable and useful after the meeting. Treating ASR, translation, diarization, and summarization as independent tasks loses these interactions.
+
+The project therefore studies the following pipeline:
+\begin{equation}
+\begin{split}
+\text{audio} &\rightarrow \text{chunking/VAD} \rightarrow \text{ASR and language ID}\\
+&\rightarrow \text{speaker attribution} \rightarrow \text{translation}\\
+&\rightarrow \text{live captions} \rightarrow \text{MoM generation}.
+\end{split}
+\end{equation}
+The current repository implements a Flask-based browser prototype using Faster-Whisper for ASR, Whisper or MarianMT-style models for translation, spectral-feature clustering for speaker labels, Server-Sent Events (SSE) for caption delivery, and neural or extractive summarization for MoM generation. The browser provides a VR-style display, but it is not itself evidence of deployment on an HMD. Maintaining this distinction is essential for a valid experimental report.
+
+\section{Objectives of the Work}
+The primary objective is to design and evaluate an integrated multilingual meeting-assistance pipeline whose outputs remain attributable, timely, and useful. The specific objectives are:
+
+\begin{enumerate}
+    \item \textbf{Streaming transcription:} acquire microphone or file audio, normalize it to a common representation, and generate timestamped text with automatic source-language identification.
+    \item \textbf{Multilingual captioning:} translate recognized utterances to a selected target language and deliver original and translated text to the interface incrementally.
+    \item \textbf{Online speaker attribution:} attach a stable speaker label to each accepted speech chunk using low-cost acoustic features in the prototype, while defining a path toward stronger embeddings and HMD-derived multimodal cues.
+    \item \textbf{Post-meeting intelligence:} generate an executive summary, key topics, speaker talk-time statistics, decisions, action items, and a diarized timeline.
+    \item \textbf{Latency-aware presentation:} record timestamps at module boundaries and study how computational delay affects caption and avatar synchronization.
+    \item \textbf{Evidence-based evaluation:} measure ASR, translation, diarization, extraction, summary, and latency performance on labelled speech rather than relying on fixed or displayed demo values.
+\end{enumerate}
+
+\section{Scope}
+The work is divided into two stages. Stage 1 is the browser prototype and is the subject of the initial experiment. It includes a live-input path, an uploaded-file interface that still requires end-to-end repair, caption streaming, acoustic speaker clustering, and MoM export. Stage 2 is the research extension: actual HMD rendering, binaural or spatial audio, lower-face or headset-sensor cues, avatar synchronization, and controlled user studies. Results from Stage 1 must not be reported as evidence that Stage 2 has been achieved.
+
+\section{Preliminary Concepts}
+
+\subsection{Audio Framing and Voice Activity Detection}
+At a sampling rate $f_s=16$ kHz, a frame of $T=30$ ms contains
+\begin{equation}
+N=f_sT=16000\times0.03=480
+\end{equation}
+samples. Voice activity detection (VAD) removes non-speech regions or prevents them from reaching expensive inference stages. In the prototype, the main ASR call enables the VAD filter provided by Faster-Whisper. A separately constructed WebRTC VAD object is not equivalent to an active frame-level VAD loop unless its decisions are actually used for chunk acceptance.
+
+\subsection{Automatic Speech Recognition}
+ASR maps an acoustic sequence $X$ to a word sequence $W$:
+\begin{equation}
+\hat{W}=\arg\max_W P(W\mid X).
+\end{equation}
+Whisper-style systems operate on log-Mel features and use a Transformer encoder-decoder for multilingual transcription and language identification \cite{radford2022whisper}. Faster-Whisper executes Whisper models through CTranslate2 for lower-memory and faster inference \cite{klein2020ctranslate2}.
+
+ASR accuracy is commonly reported with word error rate (WER):
+\begin{equation}
+\mathrm{WER}=\frac{S+D+I}{N},
+\end{equation}
+where $S$, $D$, and $I$ are substitutions, deletions, and insertions relative to a reference containing $N$ words.
+
+\subsection{Neural Machine Translation}
+An encoder-decoder translation model estimates
+\begin{equation}
+P(Y\mid X)=\prod_{t=1}^{|Y|}P(y_t\mid y_{<t},X).
+\end{equation}
+The prototype uses direct Whisper translation when the target is English and can load language-pair translation models for other targets. Translation quality can be measured with corpus BLEU \cite{papineni2002bleu}; human adequacy checks remain necessary for short conversational utterances.
+
+\subsection{Speaker Diarization}
+Speaker diarization assigns a speaker label to time intervals. The lightweight prototype computes normalized spectral descriptors and compares a new vector $\mathbf{v}$ with stored centroids $\mathbf{c}_k$ using cosine similarity:
+\begin{equation}
+\mathrm{sim}(\mathbf{v},\mathbf{c}_k)=
+\frac{\mathbf{v}^{\mathsf T}\mathbf{c}_k}{\lVert\mathbf{v}\rVert_2\lVert\mathbf{c}_k\rVert_2}.
+\end{equation}
+If the highest similarity exceeds a threshold, the chunk is assigned to that cluster; otherwise a new cluster is created. This is inexpensive but is weaker than learned speaker embeddings and cannot be described as audio-visual diarization. Diarization error rate (DER) combines missed speech, false alarm, and speaker-confusion durations.
+
+\subsection{Streaming Delivery}
+SSE provides a unidirectional HTTP channel from the Flask server to the browser. Each caption event contains the speaker label, timestamps, original text, translated text, source and target languages, and a latency field. SSE is suitable for incremental captions because the browser receives events without repeated polling.
+
+\subsection{Meeting Summarization and Information Extraction}
+The MoM module forms a dialogue from translated or original utterances, computes talk-time statistics, and attempts neural summarization with a BART-family model \cite{lewis2020bart}. If that model is unavailable, it uses frequency-ranked extractive sentences. Action items and decisions are detected with keyword rules. These rules are interpretable but can generate false positives; precision, recall, and $F_1$ should therefore be reported against manually labelled items.
+
+\subsection{Latency}
+For an utterance $i$, end-to-end caption delay should be measured as
+\begin{equation}
+L_i=t^{(i)}_{\mathrm{render}}-t^{(i)}_{\mathrm{speech\ end}}.
+\end{equation}
+A valid experiment reports the median, mean, and tail latency (for example, the 95th percentile), together with audio duration, hardware, model size, and streaming policy. A constant displayed value is not a latency measurement.
+
+\section{Expected Contribution}
+The intended contribution is a reproducible bridge between speech processing and immersive presentation: a prototype in which every caption remains linked to audio time, speaker identity, translation, and downstream MoM evidence. The longer-term contribution is an evaluation protocol that treats latency, speaker attribution, immersive synchronization, and summary reliability as connected rather than isolated objectives.
+
+\begin{thebibliography}{00}
+\bibitem{radford2022whisper} A. Radford et al., ``Robust speech recognition via large-scale weak supervision,'' arXiv:2212.04356, 2022.
+\bibitem{klein2020ctranslate2} G. Klein et al., ``CTranslate2: Fast inference engine for Transformer models,'' \textit{OpenNMT Technical Report}, 2020.
+\bibitem{papineni2002bleu} K. Papineni, S. Roukos, T. Ward, and W.-J. Zhu, ``BLEU: A method for automatic evaluation of machine translation,'' in \textit{Proc. ACL}, 2002, pp. 311--318.
+\bibitem{lewis2020bart} M. Lewis et al., ``BART: Denoising sequence-to-sequence pre-training for natural language generation, translation, and comprehension,'' in \textit{Proc. ACL}, 2020, pp. 7871--7880.
+\bibitem{ma2019stacl} M. Ma et al., ``STACL: Simultaneous translation with implicit anticipation and controllable latency using prefix-to-prefix framework,'' in \textit{Proc. ACL}, 2019, pp. 3025--3036.
+\bibitem{coria2024diart} J. M. Coria et al., ``Diart: A Python library for real-time speaker diarization,'' \textit{Journal of Open Source Software}, vol. 9, no. 99, 2024.
+\bibitem{zhu2020hmnet} C. Zhu et al., ``A hierarchical network for abstractive meeting summarization with cross-domain pretraining,'' in \textit{Findings of EMNLP}, 2020, pp. 194--203.
+\end{thebibliography}
+
+\end{document}

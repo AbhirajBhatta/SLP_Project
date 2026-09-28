@@ -1,0 +1,139 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{Low-Latency VR Speech Translation, Speaker Diarization, and Meeting Summarization: Materials, Methods, and Proposed Methodology}
+
+\author{
+\IEEEauthorblockN{Abhiraj Bhatta (23BAI0089), Piyush Priyadarsi Panda (23BAI0134), Rajesh Mundhe (23BAI0112),\\
+Varun Suresh (23BAI0097), and Simran Rawat (23BAI0090)}
+\IEEEauthorblockA{Vellore Institute of Technology, Vellore, Tamil Nadu, India}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper describes the materials and methods for a staged multilingual meeting-assistance system. The implemented stage is a Python and Flask prototype for speech capture, Whisper-based recognition and translation, lightweight online speaker clustering, browser caption streaming, and automatic Minutes of Meeting generation. The proposed research stage extends this baseline with measured incremental processing, stronger diarization, HMD-aware multimodal sensing, spatial rendering, and robustness evaluation. The separation prevents prototype interface features from being misreported as completed HMD or audio-visual experiments.
+\end{abstract}
+
+\begin{IEEEkeywords}
+materials and methods, Faster-Whisper, Flask, speaker clustering, streaming captions, Minutes of Meeting
+\end{IEEEkeywords}
+
+\section{Materials}
+
+\subsection{Software and Frameworks}
+The repository is organized into a Flask server, a core SLP engine, a MoM generator, a browser interface, and a reference command-line pipeline. Table~\ref{tab:software} lists the principal materials.
+
+\begin{table}[t]
+\caption{Software materials in the prototype}
+\label{tab:software}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{p{0.26\columnwidth}Y}
+\toprule
+Material & Role \\
+\midrule
+Python 3 & Server and signal-processing implementation \\
+Flask and Flask-CORS & HTTP API, file upload, and SSE caption endpoint \\
+Faster-Whisper & Multilingual ASR, language identification, and English translation \\
+Transformers & MarianMT-style translation and BART-family summarization \\
+NumPy/SciPy & Audio arrays, resampling, spectrogram features, and similarity calculations \\
+sounddevice/soundfile & Microphone and audio-file access \\
+HTML/CSS/JavaScript & Browser control panel, VR-style HUD, transcript, and MoM views \\
+JSON/HTML/Markdown & Session storage and report export formats \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Audio Material}
+The pipeline standardizes audio to 16 kHz, mono, floating-point samples for processing and writes 16-bit PCM WAV recordings. The repository includes a 12.00 s, 16 kHz, mono, 16-bit synthetic waveform containing separated 200 Hz and 350 Hz tones. This file can test file handling and deterministic clustering input, but it is not speech and therefore cannot be used to calculate WER, BLEU, or summary quality.
+
+For the full experiment, the required material is a labelled multi-speaker corpus containing clean speech, noise, speaker overlap, multiple languages, reference translations, word-level transcripts, speaker-time annotations, and reference summaries/action items. A separate HMD study requires synchronized audio, rendered-avatar events, and user ratings; these data are not present in the current repository.
+
+\subsection{Hardware}
+The browser prototype requires a computer, microphone, and web browser. GPU acceleration is optional; the code attempts CUDA inference and falls back to CPU int8 for ASR. Actual latency results must name the processor, GPU, memory, operating system, audio device, model size, and execution mode. An HMD and spatial-audio renderer are materials for the proposed extension, not prerequisites for the baseline browser evaluation.
+
+\section{Implemented Methods}
+
+\subsection{Session and Audio Acquisition}
+The Flask application exposes routes to list audio devices, start and stop a session, upload an audio file, set the target language, stream captions, list completed sessions, and download MoM outputs. A session creates a timestamped recording directory and stores the recorded WAV file, transcript JSON, and generated reports.
+
+Microphone blocks are acquired at 16 kHz and accumulated. The current live path submits a chunk when approximately 2.5 s of audio has accumulated. The ASR call enables its own VAD filter. A WebRTC VAD object is instantiated in the engine, but a separate frame-level WebRTC decision loop is not used in the main web path; the method must therefore be described as ASR-integrated VAD rather than a verified WebRTC-VAD front end.
+
+\subsection{ASR and Translation}
+For an input chunk $X_i$, Faster-Whisper produces the transcript $W_i$ and detected language $\ell_i$:
+\begin{equation}
+(W_i,\ell_i)=\mathrm{Whisper}(X_i).
+\end{equation}
+Beam search is used for decoding. If English is requested and the source is non-English, Whisper translation is attempted. Other target languages use a language-pair sequence-to-sequence model when available. When model loading fails, the current translation wrapper returns the source text, which must be logged as a fallback rather than counted as successful translation.
+
+\subsection{Lightweight Speaker Clustering}
+The prototype computes a spectrogram for each chunk, averages the log magnitude into 32 frequency bands, normalizes the resulting vector, and compares it with running speaker centroids. The assignment is
+\begin{equation}
+k^*=\arg\max_k \frac{\mathbf{v}_i^{\mathsf T}\mathbf{c}_k}
+{\lVert\mathbf{v}_i\rVert_2\lVert\mathbf{c}_k\rVert_2}.
+\end{equation}
+If the best score is below 0.75, a new speaker label is created; otherwise the selected centroid is updated using an exponential average. This method is a low-cost baseline. It is not a learned speaker-embedding system and does not resolve simultaneous speakers within one chunk.
+
+\subsection{Caption Streaming}
+Each accepted utterance is stored with relative start/end times, wall-clock time, speaker label, original text, translated text, language codes, and a latency field. The event is pushed to registered browser clients over SSE. The browser updates the speaker tag, source and target text, transcript history, and MoM session view.
+
+\subsection{MoM Generation}
+Speaker duration, word count, and turn count are aggregated from the transcript. A BART-family summarization pipeline is attempted; an extractive frequency-based method is used when the neural model is unavailable. Keyword rules detect decisions and action items, and frequent content words become topics. Reports are exported as JSON, HTML, and Markdown.
+
+The current generator inserts template action/decision text when none is detected. That behavior is suitable for a visual demo but unsafe for a factual MoM. In a research evaluation, empty evidence must produce an empty result, not a fabricated item.
+
+\section{Proposed Methodology}
+
+\subsection{Stage A: Repair and Instrument the Baseline}
+Before accuracy claims are made, the following baseline work is required:
+\begin{enumerate}
+    \item route microphone and file input through the same processing consumer;
+    \item replace fixed or lower-bounded demo latency values with timestamps captured at speech end, ASR completion, translation completion, server emission, and browser render;
+    \item remove default action items and decisions when no textual evidence exists;
+    \item record model identifiers, fallback events, hardware, and configuration with every session;
+    \item add reference-based scoring for WER, BLEU, DER, action-item precision/recall, and ROUGE.
+\end{enumerate}
+
+\subsection{Stage B: Streaming Translation Policy}
+The fixed chunk boundary will be replaced by a speech-aware incremental policy. A controller observes acoustic and linguistic stability and chooses \textsc{read} or \textsc{write}, following simultaneous-translation research \cite{ma2019stacl,zhao2023adaptive}. The optimization target combines translation loss and delay:
+\begin{equation}
+\mathcal{L}=\mathcal{L}_{\mathrm{MT}}+\lambda\mathcal{L}_{\mathrm{latency}}.
+\end{equation}
+Performance will be reported across multiple values of $\lambda$ instead of selecting a single favourable operating point.
+
+\subsection{Stage C: Robust Speaker Attribution}
+The 32-band baseline will be compared with learned speaker embeddings and online clustering \cite{coria2024diart}. Overlap-aware segmentation will be evaluated separately. For the HMD extension, acoustic embeddings will be fused only with sensors actually available in the chosen headset, such as spatial direction, lower-face motion, or avatar tracking. Full-face audio-visual diarization will not be assumed under occlusion.
+
+\subsection{Stage D: Latency-Aware Immersive Presentation}
+The system will associate each rendered caption or synthesized segment with its source interval. Let $\tau_i$ be measured end-to-end delay for utterance $i$. The presentation controller will update caption and avatar timing using $\tau_i$ rather than a fixed nominal delay. Browser simulation will be validated first; only a deployed HMD build will be described as VR implementation.
+
+\subsection{Stage E: Artefact-Robust MoM Generation}
+Training and evaluation transcripts will be corrupted with measured ASR substitutions, missing punctuation, chunk fragmentation, speaker-label swaps, and translation reordering. The summarizer will receive speaker and confidence metadata. Action items will require traceable source spans so that every extracted task, assignee, and deadline can be checked against the transcript.
+
+\section{Evaluation Protocol}
+The dataset will be split by meeting and speaker to avoid leakage. At least three repeated runs will be made for latency-sensitive conditions after a warm-up pass. WER, BLEU, DER, ROUGE, action/decision precision and recall, and latency percentiles will be reported with the exact sample counts. Ablations will compare: no VAD versus VAD; spectral clustering versus learned embeddings; clean versus corrupted transcripts; and fixed versus latency-aware presentation. Human evaluation will be reserved for the HMD stage and will include comprehension, perceived delay, readability, and workload.
+
+\section{Conclusion}
+The methodology treats the present code as a baseline rather than evidence of the full proposed VR architecture. This makes the next experiments interpretable: first establish a correct and instrumented speech-to-caption-to-MoM pipeline, then test stronger diarization, immersive synchronization, and robustness under controlled conditions.
+
+\begin{thebibliography}{00}
+\bibitem{radford2022whisper} A. Radford et al., ``Robust speech recognition via large-scale weak supervision,'' arXiv:2212.04356, 2022.
+\bibitem{klein2020ctranslate2} G. Klein et al., ``CTranslate2: Fast inference engine for Transformer models,'' \textit{OpenNMT Technical Report}, 2020.
+\bibitem{ma2019stacl} M. Ma et al., ``STACL: Simultaneous translation with implicit anticipation and controllable latency using prefix-to-prefix framework,'' in \textit{Proc. ACL}, 2019, pp. 3025--3036.
+\bibitem{zhao2023adaptive} L. Zhao et al., ``Adaptive policy with wait-$k$ model for simultaneous translation,'' in \textit{Proc. EMNLP}, 2023, pp. 4816--4832.
+\bibitem{coria2024diart} J. M. Coria et al., ``Diart: A Python library for real-time speaker diarization,'' \textit{Journal of Open Source Software}, vol. 9, no. 99, 2024.
+\bibitem{lewis2020bart} M. Lewis et al., ``BART: Denoising sequence-to-sequence pre-training for natural language generation, translation, and comprehension,'' in \textit{Proc. ACL}, 2020, pp. 7871--7880.
+\bibitem{zhu2020hmnet} C. Zhu et al., ``A hierarchical network for abstractive meeting summarization with cross-domain pretraining,'' in \textit{Findings of EMNLP}, 2020, pp. 194--203.
+\end{thebibliography}
+
+\end{document}

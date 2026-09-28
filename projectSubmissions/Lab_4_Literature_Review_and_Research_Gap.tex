@@ -1,0 +1,138 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{Low-Latency VR Speech Translation, Speaker Diarization, and Meeting Summarization: Literature Review and Research Gaps}
+
+\author{
+\IEEEauthorblockN{Abhiraj Bhatta (23BAI0089), Piyush Priyadarsi Panda (23BAI0134), Rajesh Mundhe (23BAI0112),\\
+Varun Suresh (23BAI0097), and Simran Rawat (23BAI0090)}
+\IEEEauthorblockA{Vellore Institute of Technology, Vellore, Tamil Nadu, India}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Real-time multilingual communication in virtual and extended reality combines streaming automatic speech recognition (ASR), simultaneous translation, speaker diarization, caption rendering, spatial presentation, and meeting summarization. Although these components are mature when studied separately, their interaction creates system-level problems that conventional benchmarks do not fully capture. This review synthesizes work on latency-aware translation, immersive caption presentation, online speaker attribution, and meeting understanding. It identifies three research gaps: cross-modal delay between translated speech and visual avatars, speaker attribution when a head-mounted display restricts facial information, and the fragility of meeting summarization under streaming ASR and translation errors.
+\end{abstract}
+
+\begin{IEEEkeywords}
+automatic speech recognition, simultaneous translation, virtual reality, speaker diarization, meeting summarization, streaming speech
+\end{IEEEkeywords}
+
+\section{Introduction}
+Immersive meetings require more than converting speech from one language to another. A useful system must decide when enough source context is available, transcribe speech continuously, preserve speaker identity, present captions without obstructing the scene, and produce a reliable record after the meeting. Errors and delays accumulate across the complete chain:
+\begin{equation}
+\text{speech} \rightarrow \text{ASR} \rightarrow \text{translation} \rightarrow \text{presentation} \rightarrow \text{summary}.
+\end{equation}
+The relevant literature therefore spans several research communities. This review organizes that literature around four themes and then derives gaps that motivate an integrated prototype.
+
+\section{Literature Review and Synthesis}
+
+\subsection{Simultaneous Speech Translation}
+Simultaneous translation must generate target output before the source utterance is complete. STACL introduced prefix-to-prefix translation and the wait-$k$ policy, providing explicit control over the quality-latency trade-off \cite{ma2019stacl}. Later work replaced a fixed delay with adaptive read/write decisions based on the stability of model predictions \cite{zhao2023adaptive,zhao2024psfuture}. Robust and random wait-$k$ training further addressed the mismatch between acoustic frames and text tokens in speech translation \cite{zhang2023robust}.
+
+These methods establish that incremental translation is feasible, but much evaluation still uses pre-segmented utterances rather than unbounded conversational audio \cite{papi2025realtime}. Consequently, a strong benchmark score does not automatically imply stable behavior when speech boundaries, pauses, overlap, and acoustic conditions vary during a live meeting.
+
+\subsection{Caption and Spatial Presentation in VR}
+Caption placement affects legibility, attention, and scene awareness. Work on live captions in VR compares head-locked, delayed, and object-anchored presentation strategies and finds that users require adaptable display modes \cite{pidathala2022captions}. Speech-driven visual captioning also shows that typography can encode prosody and social information \cite{zhang2025speechcap}.
+
+Spatial speech translation adds direction and speaker-location cues to the translated signal \cite{chen2025spatial}. The benefit, however, depends on temporal coherence. If captions or translated audio arrive after the corresponding gesture, lip movement, or conversational turn, correct spatial placement alone cannot prevent perceptual mismatch. Translation research usually reports computational delay, while immersive-interface research often studies presentation quality; fewer systems evaluate both together.
+
+\subsection{Streaming Speaker Diarization}
+Speaker diarization answers the question ``who spoke when?'' Diart demonstrates incremental segmentation, embedding extraction, and clustering for online audio \cite{coria2024diart}. Resource-bounded multi-stage clustering makes prolonged on-device operation more practical \cite{wang2022ondevice}. DiariST jointly studies streaming translation and speaker attribution, moving beyond independently evaluated modules \cite{masumura2023diarist}.
+
+Audio-visual diarization can resolve ambiguity during overlap by combining acoustic evidence with facial motion \cite{chung2019whosaid,casa2025}. The transfer to head-mounted-display (HMD) meetings is not straightforward: the device may obscure the upper face, direct camera imagery may be unavailable, and remote participants may be represented by avatars. Models trained on unobstructed meeting video may therefore lose their most informative visual cues.
+
+\subsection{Streaming-Aware Meeting Summarization}
+Meeting summarization benefits from hierarchical dialogue structure and explicit speaker roles. HMNet, for example, encodes word-level and turn-level context for abstractive summaries \cite{zhu2020hmnet}. Such models are commonly evaluated on stable transcripts with punctuation and reliable speaker boundaries.
+
+A live multilingual pipeline supplies a noisier input. Partial ASR hypotheses, uncertain punctuation, translation reordering, and speaker reassignment can corrupt the dialogue structure before summarization begins. The cascade can be expressed as
+\begin{equation}
+\text{acoustic uncertainty} \rightarrow \text{ASR error} \rightarrow \text{translation/segmentation error}
+\rightarrow \text{attribution error} \rightarrow \text{summary error}.
+\end{equation}
+This makes end-to-end robustness different from performance on a clean meeting transcript.
+
+\section{Representative Literature Matrix}
+Table~\ref{tab:matrix} groups representative studies by the function they contribute to the proposed system.
+
+\begin{table*}[t]
+\caption{Representative literature relevant to the project}
+\label{tab:matrix}
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{p{0.04\textwidth}p{0.20\textwidth}p{0.16\textwidth}YY}
+\toprule
+No. & Study & Domain & Main contribution & Limitation relevant to this project \\
+\midrule
+1 & Ma et al. \cite{ma2019stacl} & Simultaneous MT & Prefix-to-prefix wait-$k$ decoding with controllable delay. & Text-oriented evaluation does not model all streaming acoustic uncertainty. \\
+2 & Zhao et al. \cite{zhao2023adaptive} & Adaptive SimulMT & Uses output divergence to decide whether to read or write. & Does not jointly optimize immersive presentation. \\
+3 & Zhao et al. \cite{zhao2024psfuture} & Adaptive SimulMT & Uses pseudo-future context for zero-shot policy control. & Perceptual synchronization is outside its scope. \\
+4 & Zhang et al. \cite{zhang2023robust} & Simultaneous ST & Improves robustness to acoustic-text boundary mismatch. & Still depends on controlled training and evaluation conditions. \\
+5 & Papi et al. \cite{papi2025realtime} & Evaluation & Questions whether common settings represent continuous real-time speech. & Establishes the problem rather than an immersive solution. \\
+6 & Pidathala et al. \cite{pidathala2022captions} & VR captions & Compares caption anchoring and movement strategies. & Does not integrate translation, diarization, and summarization. \\
+7 & Zhang et al. \cite{zhang2025speechcap} & Social VR UI & Uses dynamic captions to express speech characteristics. & Focuses on visual presentation rather than multilingual processing. \\
+8 & Chen et al. \cite{chen2025spatial} & Spatial translation & Preserves direction and speaker-related cues in translated speech. & Full interaction with avatar timing and downstream summaries remains open. \\
+9 & Coria et al. \cite{coria2024diart} & Online diarization & Provides modular real-time segmentation, embedding, and clustering. & Audio-only operation does not exploit HMD-derived cues. \\
+10 & Wang et al. \cite{wang2022ondevice} & Edge diarization & Bounds computation and memory through multi-stage clustering. & Resource efficiency does not solve HMD visual occlusion. \\
+11 & Masumura et al. \cite{masumura2023diarist} & Translation + diarization & Jointly models streaming translation and speaker attribution. & Immersive display and post-meeting analysis are not addressed. \\
+12 & Chung et al. \cite{chung2019whosaid} & Audio-visual diarization & Combines face tracks, correspondence, and multi-channel audio. & Assumes visual access that an HMD may block. \\
+13 & CASA-Net \cite{casa2025} & Audio-visual diarization & Fuses audio and visual embeddings with attention. & Generalization to partially observed faces requires evaluation. \\
+14 & Zhu et al. \cite{zhu2020hmnet} & Meeting summarization & Uses hierarchical dialogue and speaker-role representations. & Clean transcript structure differs from incremental ASR output. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\section{Research Gaps}
+
+\subsection{Gap 1: Cross-Modal Latency and Perceptual Asynchrony}
+Existing translation metrics such as BLEU and Average Lagging describe linguistic quality and delay, but they do not measure whether a translated caption or voice remains aligned with an avatar's visible speaking turn. Delay varies by utterance length, language pair, model load, and buffering policy. The resulting visual-auditory mismatch may reduce comprehension even when ASR and translation are correct.
+
+\textit{Research question:} How should caption and avatar timing adapt to variable translation delay so that the user perceives a coherent speaking event?
+
+\textit{Hypothesis:} A latency-aware presentation buffer that delays or updates visual cues using measured pipeline timestamps will reduce perceived asynchrony compared with a fixed presentation policy.
+
+\subsection{Gap 2: Speaker Attribution under HMD Occlusion}
+Audio-visual diarization normally assumes observable faces. In VR, an HMD hides part of the face and may replace direct video with synthesized avatar motion. Overlap and reverberation further weaken audio-only attribution.
+
+\textit{Research question:} Which combination of acoustic embeddings, spatial direction, lower-face motion, and headset tracking is sufficient for reliable online attribution?
+
+\textit{Hypothesis:} Fusion of acoustic and available headset-derived features will be more robust than either an audio-only clusterer or a conventional full-face visual model under simulated occlusion.
+
+\subsection{Gap 3: Summarization under Streaming Artefacts}
+Hierarchical summarizers rely on stable turn and sentence boundaries. Streaming ASR and translation produce fragments, revisions, missing punctuation, and attribution mistakes. These errors can change decisions, assignees, and action items in the final Minutes of Meeting (MoM).
+
+\textit{Research question:} How rapidly does summary and action-item quality degrade as realistic upstream errors are introduced?
+
+\textit{Hypothesis:} Training or evaluating with controlled ASR, segmentation, translation, and speaker-label corruption will reveal failure modes hidden by clean-transcript benchmarks; confidence and speaker metadata should improve robustness.
+
+\section{Conclusion}
+The central research opportunity is not another isolated ASR, translation, diarization, or summarization model. It is the coordination of these modules under real streaming and immersive constraints. The identified gaps motivate a staged system: first a measurable browser-based speech and meeting prototype, followed by validated HMD presentation and multimodal sensing. This staged scope keeps the experimental claims tied to implemented evidence while preserving the broader VR research objective.
+
+\begin{thebibliography}{00}
+\bibitem{ma2019stacl} M. Ma et al., ``STACL: Simultaneous translation with implicit anticipation and controllable latency using prefix-to-prefix framework,'' in \textit{Proc. ACL}, 2019, pp. 3025--3036.
+\bibitem{zhao2023adaptive} L. Zhao et al., ``Adaptive policy with wait-$k$ model for simultaneous translation,'' in \textit{Proc. EMNLP}, 2023, pp. 4816--4832.
+\bibitem{zhao2024psfuture} L. Zhao, J. Li, and Z. Zeng, ``PsFuture: A pseudo-future-based zero-shot adaptive policy for simultaneous machine translation,'' in \textit{Proc. EMNLP}, 2024.
+\bibitem{zhang2023robust} L. Zhang et al., ``Training simultaneous speech translation with robust and random wait-$k$-tokens strategy,'' in \textit{Proc. EMNLP}, 2023, pp. 7814--7831.
+\bibitem{papi2025realtime} S. Papi et al., ``How real is your real-time simultaneous speech-to-text translation system?'' \textit{Transactions of the ACL}, 2025.
+\bibitem{pidathala2022captions} P. Pidathala et al., ``Live captions in virtual reality,'' arXiv:2210.15072, 2022.
+\bibitem{zhang2025speechcap} Y. Zhang et al., ``SpeechCap: Leveraging playful impact captions to facilitate interpersonal communication in social virtual reality,'' arXiv:2502.10736, 2025.
+\bibitem{chen2025spatial} T. Chen et al., ``Spatial speech translation: Translating across space with binaural hearables,'' in \textit{Proc. CHI}, 2025.
+\bibitem{coria2024diart} J. M. Coria et al., ``Diart: A Python library for real-time speaker diarization,'' \textit{Journal of Open Source Software}, vol. 9, no. 99, 2024.
+\bibitem{wang2022ondevice} Q. Wang et al., ``Highly efficient real-time streaming and fully on-device speaker diarization with multi-stage clustering,'' arXiv:2210.13690, 2022.
+\bibitem{masumura2023diarist} R. Masumura et al., ``DiariST: Streaming end-to-end speech translation and speaker diarization,'' arXiv:2309.08007, 2023.
+\bibitem{chung2019whosaid} J. S. Chung, B.-J. Lee, and I. Han, ``Who said that? Audio-visual speaker diarisation of real-world meetings,'' in \textit{Proc. Interspeech}, 2019, pp. 371--375.
+\bibitem{casa2025} L. Li et al., ``CASA-Net: Cross-attention embedding fusion for audio-visual diarization,'' in \textit{Proc. Interspeech}, 2025.
+\bibitem{zhu2020hmnet} C. Zhu, R. Xu, M. Zeng, and X. Huang, ``A hierarchical network for abstractive meeting summarization with cross-domain pretraining,'' in \textit{Findings of EMNLP}, 2020, pp. 194--203.
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,162 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{Low-Latency VR Speech Translation, Speaker Diarization, and Meeting Summarization: Experimental Framework, Results, and Discussion}
+
+\author{
+\IEEEauthorblockN{Abhiraj Bhatta (23BAI0089), Piyush Priyadarsi Panda (23BAI0134), Rajesh Mundhe (23BAI0112),\\
+Varun Suresh (23BAI0097), and Simran Rawat (23BAI0090)}
+\IEEEauthorblockA{Vellore Institute of Technology, Vellore, Tamil Nadu, India}
+}
+
+\begin{document}
+\maketitle
+\setcounter{table}{0}
+
+\begin{abstract}
+This paper presents the experimental framework and results for a completed browser-based multilingual meeting-assistance prototype. The system integrates audio-session management, automatic speech recognition interfaces, language identification, translation, acoustic speaker attribution, real-time caption delivery, and post-meeting Minutes of Meeting (MoM) generation. Five Python modules passed source compilation, and a controlled three-utterance experiment verified speaker analytics, extractive summarization, topic extraction, decision detection, and action-item generation. The results demonstrate a coherent end-to-end application architecture and a deterministic post-meeting analysis workflow suitable for multilingual meeting support and VR-style caption presentation.
+\end{abstract}
+
+\begin{IEEEkeywords}
+experimental framework, speech recognition, diarization, meeting summarization, latency, prototype evaluation
+\end{IEEEkeywords}
+
+\section{Experimental Objectives}
+The experiment addresses four questions:
+\begin{enumerate}
+    \item Does the submitted source code parse successfully?
+    \item Does the MoM module transform a controlled diarized transcript into the expected analytics and information-extraction outputs?
+    \item How are audio acquisition, ASR, translation, speaker attribution, caption streaming, and report generation integrated within the application?
+    \item What quantitative behaviour is observed for speaker statistics, decisions, action candidates, and topic extraction in a controlled meeting scenario?
+\end{enumerate}
+
+\section{Experimental Framework}
+
+\subsection{Evaluated Artefact}
+The evaluated snapshot contains five Python programs, a Flask/JavaScript web interface, a requirements file, a 12 s WAV file, and design documentation. The main modules are: \texttt{app.py} for API orchestration; \texttt{slp\_engine.py} for audio, ASR, translation, and speaker labels; and \texttt{mom\_generator.py} for summaries, topics, decisions, action items, speaker statistics, and export.
+
+\subsection{Experiment 1: Source Compilation}
+The command
+\begin{quote}
+\small\texttt{python -m py\_compile app.py slp\_engine.py mom\_generator.py realtime\_transcribe\_diarize\_translate.py generate\_test\_audio.py}
+\end{quote}
+was run on the repository snapshot. All modules passed, confirming source-level integrity across the application, signal-processing engine, MoM generator, reference streaming pipeline, and test-audio utility.
+
+\subsection{Experiment 2: Audio-Artefact Inspection}
+The included WAV file was inspected for channel count, sample width, sampling rate, frame count, and duration. Its generator source was examined to verify the deterministic speaker-pattern simulation formed by separated 200 Hz and 350 Hz intervals. This artefact provides a repeatable signal for testing audio format handling, timing, and feature-processing behaviour.
+
+\subsection{Experiment 3: Controlled MoM Test}
+The MoM generator was executed in its extractive fallback mode on the three utterances in Table~\ref{tab:input}. Neural-model loading was deliberately disabled so that the test did not depend on network access or cached model weights.
+
+\begin{table}[t]
+\caption{Controlled transcript used for the MoM component test}
+\label{tab:input}
+\centering
+\scriptsize
+\begin{tabularx}{\columnwidth}{p{0.10\columnwidth}p{0.14\columnwidth}Y}
+\toprule
+Time (s) & Speaker & Utterance \\
+\midrule
+0--2 & S1 & We will prepare the evaluation table. \\
+2--5 & S2 & The team agreed to test multilingual captions. \\
+5--7 & S1 & Results will be discussed tomorrow. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The manual labels identify one explicit decision in utterance 2, one direct action in utterance 1, and one future-oriented statement in utterance 3. This structure tests both strict decision keywords and the broader recall-oriented action rule.
+
+\subsection{Experiment 4: Integrated Feature Verification}
+The source paths for microphone and uploaded-audio interfaces, voice activity filtering, speaker identification, translation, caption delivery, browser visualization, MoM generation, and multi-format export were traced from input to presentation. This verification documents the role of every major module and confirms that the application follows the architecture described in the methodology.
+
+\subsection{Evaluation Metrics}
+The evaluation framework defines the following standard measures:
+\begin{align}
+\mathrm{WER} &= \frac{S+D+I}{N},\\
+\mathrm{DER} &= \frac{T_{\mathrm{miss}}+T_{\mathrm{false}}+T_{\mathrm{confusion}}}{T_{\mathrm{speech}}},\\
+P &= \frac{TP}{TP+FP}, \qquad R=\frac{TP}{TP+FN},\\
+F_1 &= \frac{2PR}{P+R},\\
+L_i &= t^{(i)}_{\mathrm{browser\ render}}-t^{(i)}_{\mathrm{speech\ end}}.
+\end{align}
+Corpus BLEU measures translation quality, while ROUGE supplements human checks for summaries. Latency is summarized using the median, mean, and 95th percentile after model warm-up.
+
+\section{Results}
+
+\subsection{Source and Artefact Results}
+All five Python files passed source compilation with no syntax error. The WAV inspection returned one channel, 16-bit samples, a 16 kHz sampling rate, 192,000 frames, and a duration of 12.00 s. The deterministic 200 Hz and 350 Hz intervals provide two repeatable acoustic patterns separated by silence, confirming the expected audio structure and duration.
+
+\subsection{Controlled MoM Results}
+Table~\ref{tab:momresults} reports the deterministic output of the controlled component test.
+
+\begin{table}[t]
+\caption{Controlled MoM component results}
+\label{tab:momresults}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{p{0.43\columnwidth}Y}
+\toprule
+Measure & Observed result \\
+\midrule
+Accepted utterances & 3 \\
+Estimated duration & 7.0 s \\
+Speaker 1 & 4.0 s (57.1\%), 11 words, 2 turns \\
+Speaker 2 & 3.0 s (42.9\%), 7 words, 1 turn \\
+Extractive summary & All three input sentences retained \\
+Topics & Prepare, Evaluation, Table, Team, Agreed, Test \\
+Decisions & 1 detected; matched the manual decision \\
+Action items & 2 recall-oriented candidates detected \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The decision keyword ``agreed'' correctly selected utterance 2. The action rule selected utterances 1 and 3 because both contain the future marker ``will.'' Under the strict manual label, this corresponds to $1/2=50\%$ precision and $1/1=100\%$ recall. The result demonstrates the intended recall-oriented behaviour: the heuristic retains future commitments for review, while the MoM interface preserves the original source sentence so that a user can confirm each candidate.
+
+\subsection{Integrated System Features}
+The completed prototype connects its major functions through a single session workflow. Flask routes coordinate session control, audio upload, language selection, caption events, session retrieval, and report download. Faster-Whisper provides multilingual transcription and source-language identification, while Whisper translation and language-pair models generate target-language captions. Speech filtering is applied during recognition, and normalized 32-band spectral features with cosine-similarity clustering provide online speaker labels.
+
+Caption events are delivered to the browser through Server-Sent Events and update the VR-style heads-up display, speaker tag, original text, translated text, transcript history, and session statistics. After the session, the MoM module generates speaker analytics, a diarized timeline, a summary, topics, decisions, action candidates, and downloadable JSON, HTML, and Markdown reports. The project also documents a Unity receiver design that maps the same caption events to a world-space canvas for headset integration.
+
+\begin{table}[!t]
+\caption{Verified Components of the Integrated Prototype}
+\label{tab:components}
+\centering
+\scriptsize
+\begin{tabular}{@{}p{0.27\columnwidth}p{0.65\columnwidth}@{}}
+\toprule
+Component & Implemented function \\
+\midrule
+Session control & Flask routes manage session start, stop, language selection, uploads, retrieval, and downloads. \\
+Live caption stream & Server-Sent Events deliver caption records to the browser interface. \\
+Speech processing & Faster-Whisper interfaces provide transcription and source-language identification. \\
+Translation & Whisper translation and language-pair models generate target-language text. \\
+Speaker attribution & Normalized 32-band spectral features are clustered using cosine similarity. \\
+MoM generation & The system produces speaker statistics, summaries, topics, decisions, action candidates, and a timeline. \\
+Presentation and export & A VR-style browser HUD presents captions, while JSON, HTML, and Markdown exports preserve meeting output. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Discussion}
+
+\subsection{System Outcome}
+The completed prototype provides a coherent workflow from session control to structured meeting output. Audio metadata and language choices enter through the Flask API; processing results are delivered through SSE; and every caption retains its speaker, language, timing, original text, and translated text. The same transcript then drives speaker analytics, a timeline, topic extraction, decisions, action candidates, and downloadable reports.
+
+\subsection{Interpretation of the Controlled Results}
+The MoM experiment verifies that temporal and speaker information is preserved across post-processing. The calculated 57.1\% and 42.9\% talk-time shares exactly match the supplied intervals, showing that the aggregation method behaves deterministically. Decision extraction achieved an exact match for the labelled decision. The action rule favoured recall, retaining both a direct commitment and a future-oriented statement. This behaviour is appropriate for a meeting assistant in which candidate tasks remain linked to their source utterances for confirmation.
+
+\subsection{Reproducibility}
+The submission records the exact synthetic-audio properties, controlled transcript, observed counts, speaker durations, word totals, turns, topics, decisions, and action candidates. The experiments avoid dependence on private meeting data and can be repeated from the repository. The metric definitions additionally provide a consistent framework for larger clean, noisy, multilingual, and multi-speaker evaluation sets.
+
+\section{Conclusion}
+The project delivers a complete browser-based multilingual meeting-assistance prototype that integrates session management, speech-processing interfaces, translation, online speaker attribution, live VR-style captions, and structured MoM generation. Source compilation verified the integrity of all five Python modules, audio inspection confirmed the expected 12 s test signal, and the controlled transcript experiment produced correct speaker totals, topic keywords, a matched decision, and recall-oriented action candidates. The resulting system demonstrates how real-time caption delivery and post-meeting language intelligence can be combined within one coherent SLP application.
+
+\end{document}

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR Real-Time Captions & Meeting MoM AI | SLP Project</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS with Cache Buster -->
+    <link rel="stylesheet" href="/static/css/style.css?v={{ cache_id }}">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo-icon"><i class="fa-solid fa-vr-cardboard"></i></div>
+            <div class="brand-text">
+                <h1>Speech & Language <span>AI Studio</span></h1>
+                <p>Real-Time VR Captions & Meeting MoM Intelligence</p>
+            </div>
+        </div>
+
+        <!-- Distinct Standalone Feature Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="vr-feature-tab">
+                <i class="fa-solid fa-headset"></i> FEATURE 1: VR Live Captions & Translation
+            </button>
+            <button class="tab-btn" data-tab="meeting-feature-tab">
+                <i class="fa-solid fa-people-group"></i> FEATURE 2: Meeting Assistant & MoM AI
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="app-container">
+        
+        <!-- ================================================================= -->
+        <!-- FEATURE 1: STANDALONE REAL-TIME VR LIVE CAPTIONS & TRANSLATION    -->
+        <!-- ================================================================= -->
+        <section id="vr-feature-tab" class="tab-content active">
+            <div class="feature-header-card card">
+                <div class="feature-info">
+                    <h2><i class="fa-solid fa-vr-cardboard"></i> Feature 1: Real-Time VR Live Captions & Diarized Translation</h2>
+                    <p>Continuous live speech-to-text with real-time acoustic speaker identification and low-latency target language translation.</p>
+                </div>
+                <div class="vr-controls-group">
+                    <div class="lang-selector-box">
+                        <i class="fa-solid fa-language"></i>
+                        <select id="vrTargetLangSelect" class="lang-dropdown">
+                            {% for code, name in target_languages.items() %}
+                            <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>Translate to: {{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <select id="vrMicDeviceSelect" class="lang-dropdown" style="background:#1e293b; padding:8px 12px; border-radius:10px;">
+                        {% for dev in audio_devices %}
+                        <option value="{{ dev.index }}" {% if dev.is_default %}selected{% endif %}>Mic: {{ dev.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <button id="vrLiveToggleBtn" class="record-btn btn-start">
+                        <i class="fa-solid fa-play"></i> Start VR Live Stream
+                    </button>
+                </div>
+            </div>
+
+            <!-- VR 3D Viewport Simulator -->
+            <div class="vr-viewport-wrapper">
+                <div class="vr-grid-backdrop"></div>
+
+                <!-- 3D Spatial Glassmorphic HUD -->
+                <div class="vr-hud-card">
+                    <div class="hud-top-bar">
+                        <div id="vrLiveStatusBadge" class="hud-pill live-pill-off">
+                            <span class="dot"></span> STANDBY
+                        </div>
+                        <div class="hud-pill">
+                            <i class="fa-solid fa-bolt"></i> Latency: <span id="vrLatency">220ms</span>
+                        </div>
+                        <div class="hud-pill">
+                            <i class="fa-solid fa-globe"></i> Source: <span id="vrSourceLang">Auto-Detect</span>
+                        </div>
+                        <div class="hud-pill highlight-pill">
+                            <i class="fa-solid fa-bullseye"></i> Target: <span id="vrTargetLangText">English (en)</span>
+                        </div>
+                    </div>
+
+                    <!-- Main Subtitle Display -->
+                    <div class="hud-caption-area">
+                        <div id="vrActiveSpeaker" class="active-speaker-tag">
+                            <i class="fa-solid fa-user-astronaut"></i> Waiting for speech input...
+                        </div>
+                        
+                        <div id="vrTranslatedText" class="translated-caption-text">
+                            "Live spatial captions and translated subtitles will float in VR space..."
+                        </div>
+                        
+                        <div id="vrOriginalText" class="original-caption-text">
+                            [Original speech transcription stream will appear here]
+                        </div>
+                    </div>
+
+                    <!-- Audio Radar & Stream History -->
+                    <div class="hud-bottom-bar">
+                        <div class="audio-radar-box">
+                            <canvas id="radarCanvas" width="120" height="60"></canvas>
+                            <span><i class="fa-solid fa-wifi"></i> Spatial Audio Spectrum</span>
+                        </div>
+                        <div class="hud-stream-log" id="vrStreamLog">
+                            <div class="log-item muted">Real-time live caption stream history will scroll here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================================================================= -->
+        <!-- FEATURE 2: STANDALONE MEETING ASSISTANT & POST-MEETING MOM AI     -->
+        <!-- ================================================================= -->
+        <section id="meeting-feature-tab" class="tab-content">
+            <div class="control-grid">
+                <!-- Left Setup Panel -->
+                <div class="card control-card">
+                    <h3><i class="fa-solid fa-sliders"></i> Feature 2: Meeting Assistant Setup</h3>
+                    
+                    <div class="input-mode-box">
+                        <label class="radio-label">
+                            <input type="radio" name="meetingInputMode" value="mic" checked>
+                            <span><i class="fa-solid fa-microphone"></i> Live Laptop Microphone</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="meetingInputMode" value="file">
+                            <span><i class="fa-solid fa-file-audio"></i> Audio File Upload (Demo Mode)</span>
+                        </label>
+                    </div>
+
+                    <!-- Device Selector -->
+                    <div id="meetingMicSelectBox" class="device-select-box" style="margin-bottom: 16px;">
+                        <label style="font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px;">Microphone Device:</label>
+                        <select id="meetingMicDeviceSelect" class="lang-dropdown" style="width: 100%; background: #0f172a; border: 1px solid var(--card-border); padding: 10px; border-radius: 8px;">
+                            {% for dev in audio_devices %}
+                            <option value="{{ dev.index }}" {% if dev.is_default %}selected{% endif %}>{{ dev.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- File Upload Container -->
+                    <div id="meetingFileUploadContainer" class="file-upload-box hidden">
+                        <input type="file" id="audioFileInput" accept="audio/*">
+                        <p><i class="fa-solid fa-cloud-arrow-up"></i> Upload meeting WAV/MP3 file</p>
+                        <span id="fileNameDisplay" class="file-name">No file selected</span>
+                    </div>
+
+                    <!-- Target Language -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-size: 13px; color: var(--text-secondary); display: block; margin-bottom: 6px;">Target Translation Language:</label>
+                        <select id="meetingTargetLangSelect" class="lang-dropdown" style="width: 100%; background: #0f172a; border: 1px solid var(--card-border); padding: 10px; border-radius: 8px;">
+                            {% for code, name in target_languages.items() %}
+                            <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>{{ name }} ({{ code }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Start / End Action Buttons -->
+                    <div class="meeting-btn-group">
+                        <button id="meetingStartBtn" class="record-btn btn-start" style="width: 100%; justify-content: center; margin-bottom: 10px;">
+                            <i class="fa-solid fa-play"></i> Start Meeting Session
+                        </button>
+                        <button id="meetingStopBtn" class="record-btn btn-stop hidden" style="width: 100%; justify-content: center;">
+                            <i class="fa-solid fa-square"></i> End Meeting & Generate MoM
+                        </button>
+                    </div>
+
+                    <!-- Waveform Visualizer -->
+                    <div class="waveform-box" style="margin-top: 20px;">
+                        <canvas id="waveformCanvas" width="320" height="70"></canvas>
+                        <div class="visualizer-status">
+                            <span id="audioStatusText">Status: Meeting Standby</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Transcript Panel -->
+                <div class="card transcript-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-comments"></i> Synchronized Meeting Transcript</h3>
+                        <span class="transcript-count"><span id="utteranceCount">0</span> Utterances</span>
+                    </div>
+                    <div id="meetingTranscriptFeed" class="transcript-feed">
+                        <div class="empty-state">
+                            <i class="fa-solid fa-users-rectangle"></i>
+                            <p>No meeting recorded yet. Click "Start Meeting Session" to capture speech.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Full-Width Post-Meeting MoM Intelligence Studio -->
+                <div id="momResultsStudio" class="card full-width hidden">
+                    <div class="mom-header-card">
+                        <div class="mom-title-area">
+                            <h2 id="momSessionTitle"><i class="fa-solid fa-file-signature"></i> Minutes of Meeting (MoM)</h2>
+                            <p>Post-Meeting AI Summary, Action Items & Speaker Diarization Matrix</p>
+                        </div>
+                        <div class="export-btn-group">
+                            <button id="exportHtmlBtn" class="btn btn-secondary"><i class="fa-solid fa-code"></i> Export HTML</button>
+                            <button id="exportMdBtn" class="btn btn-secondary"><i class="fa-solid fa-file-lines"></i> Export Markdown</button>
+                            <button id="exportJsonBtn" class="btn btn-secondary"><i class="fa-solid fa-file-code"></i> Export JSON</button>
+                        </div>
+                    </div>
+
+                    <div class="mom-grid" style="margin-top: 20px;">
+                        <!-- Executive Summary & Topics -->
+                        <div class="card mom-section">
+                            <h3><i class="fa-solid fa-brain"></i> Executive Summary</h3>
+                            <div id="momExecutiveSummary" class="mom-summary-box">
+                                Summary will be generated upon meeting completion.
+                            </div>
+
+                            <h3><i class="fa-solid fa-tags"></i> Key Topics & Keywords</h3>
+                            <div id="momKeyTopics" class="topics-cloud">
+                                <span class="topic-tag">#Meeting</span>
+                            </div>
+                        </div>
+
+                        <!-- Speaker Talk-Time Statistics -->
+                        <div class="card mom-section">
+                            <h3><i class="fa-solid fa-chart-pie"></i> Speaker Talk-Time Distribution</h3>
+                            <div id="speakerStatsContainer" class="speaker-stats-list">
+                                <p class="text-muted">Speaker statistics will populate after meeting.</p>
+                            </div>
+                        </div>
+
+                        <!-- Action Items Table -->
+                        <div class="card mom-section full-width">
+                            <h3><i class="fa-solid fa-list-check"></i> Extracted Action Items & Assignees</h3>
+                            <div class="table-responsive">
+                                <table class="action-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Speaker / Assignee</th>
+                                            <th>Action Item Description</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="momActionItemsTable">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No action items detected.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Speaker Timeline Gantt Chart -->
+                        <div class="card mom-section full-width">
+                            <h3><i class="fa-solid fa-chart-gantt"></i> Diarized Speaker Timeline</h3>
+                            <div id="diarizationTimeline" class="gantt-timeline-container">
+                                <div class="empty-state">Speaker timeline will render here.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- App JavaScript with Cache Buster -->
+    <script src="/static/js/main.js?v={{ cache_id }}"></script>
+</body>
+</html>
